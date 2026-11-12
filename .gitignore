@@ -1,0 +1,19 @@
+# Compiled class files
+*.class
+target/
+
+# IDE files
+.idea/
+*.iml
+.vscode/
+.settings/
+.project
+.classpath
+
+# Banco de dados SQLite local gerado nos testes
+*.db
+*.sqlite
+
+# OS files
+.DS_Store
+Thumbs.db
