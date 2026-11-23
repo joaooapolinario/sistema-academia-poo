@@ -73,6 +73,7 @@ class ConnectionFactoryTest {
 
         Set<String> tabelasEsperadas = Set.of(
                 "alunos",
+                "restricoes_medicas",
                 "instrutores",
                 "planos",
                 "matriculas",
