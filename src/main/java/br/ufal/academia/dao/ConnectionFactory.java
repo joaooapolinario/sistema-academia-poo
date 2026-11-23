@@ -64,6 +64,15 @@ public class ConnectionFactory {
                 )
                 """,
                 """
+                CREATE TABLE IF NOT EXISTS restricoes_medicas (
+                     id INTEGER PRIMARY KEY AUTOINCREMENT,
+                     aluno_id INTEGER NOT NULL,
+                     descricao TEXT NOT NULL,
+                     UNIQUE (aluno_id, descricao),
+                     FOREIGN KEY (aluno_id) REFERENCES alunos(id) ON DELETE CASCADE
+                )
+                """,
+                """
                 CREATE TABLE IF NOT EXISTS instrutores (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     nome TEXT NOT NULL,
@@ -130,6 +139,7 @@ public class ConnectionFactory {
                     FOREIGN KEY (matricula_id) REFERENCES matriculas(id) ON DELETE CASCADE
                 )
                 """,
+                "CREATE INDEX IF NOT EXISTS idx_restricoes_medicas_aluno_id ON restricoes_medicas(aluno_id)",
                 "CREATE INDEX IF NOT EXISTS idx_matriculas_aluno_id ON matriculas(aluno_id)",
                 "CREATE INDEX IF NOT EXISTS idx_matriculas_status ON matriculas(status)",
                 "CREATE INDEX IF NOT EXISTS idx_treinos_aluno_id ON treinos(aluno_id)",
