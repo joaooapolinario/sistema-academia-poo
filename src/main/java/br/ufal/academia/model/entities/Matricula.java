@@ -151,6 +151,12 @@ public class Matricula {
 
     // Chamado pelo DAO após o INSERT para registrar o id gerado pelo banco.
     public void atribuirId(int id) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("O id deve ser positivo.");
+        }
+        if (this.id != 0) {
+            throw new IllegalStateException("O id desta matrícula já foi atribuído.");
+        }
         this.id = id;
     }
 

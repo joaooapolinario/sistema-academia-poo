@@ -81,5 +81,19 @@ class FrequenciaTest {
         Frequencia frequencia = new Frequencia(matricula, agora);
         assertThrows(IllegalArgumentException.class, () -> frequencia.atribuirId(0));
         assertThrows(IllegalArgumentException.class, () -> frequencia.atribuirId(-1));
+        assertThrows(IllegalArgumentException.class, () -> Frequencia.reconstituir(0, matricula, agora));
+    }
+
+    @Test
+    void idSoPodeSerAtribuidoUmaVezEDeveSerPositivo() throws Exception {
+        Frequencia frequencia = new Frequencia(matricula, LocalDateTime.of(2026, 11, 10, 9, 0));
+
+        assertEquals(0, frequencia.getId());
+        assertThrows(IllegalArgumentException.class, () -> frequencia.atribuirId(0));
+        assertThrows(IllegalArgumentException.class, () -> frequencia.atribuirId(-5));
+
+        frequencia.atribuirId(9);
+        assertEquals(9, frequencia.getId());
+        assertThrows(IllegalStateException.class, () -> frequencia.atribuirId(10));
     }
 }

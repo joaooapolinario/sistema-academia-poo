@@ -111,7 +111,7 @@ public class Main {
     }
 
     // Seed idempotente dos 4 planos padrão no SQLite via PlanoFactory.
-    static void inicializarPlanosPadrao(PlanoDAO planoDAO) {
+    public static void inicializarPlanosPadrao(PlanoDAO planoDAO) {
         if (planoDAO == null) {
             throw new IllegalArgumentException("O PlanoDAO é obrigatório para o seed de planos.");
         }

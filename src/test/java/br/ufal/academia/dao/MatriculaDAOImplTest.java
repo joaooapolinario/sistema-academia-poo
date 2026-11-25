@@ -140,6 +140,19 @@ class MatriculaDAOImplTest {
     void deveFalharAoAtualizarMatriculaInexistente() throws Exception {
         Matricula naoSalva = new Matricula(aluno, plano, INICIO, new CalculoPadraoStrategy());
         assertThrows(IllegalArgumentException.class, () -> dao.atualizar(naoSalva));
+
+        Matricula inexistente = new Matricula(aluno, plano, INICIO, new CalculoPadraoStrategy());
+        inexistente.atribuirId(999);
+        assertThrows(IllegalArgumentException.class, () -> dao.atualizar(inexistente));
+    }
+
+    @Test
+    void naoDeveSalvarAMesmaMatriculaDuasVezes() throws Exception {
+        Matricula matricula = new Matricula(aluno, plano, INICIO, new CalculoPadraoStrategy());
+        dao.salvar(matricula);
+
+        assertThrows(IllegalArgumentException.class, () -> dao.salvar(matricula));
+        assertEquals(1, dao.listarTodos().size());
     }
 
     @Test

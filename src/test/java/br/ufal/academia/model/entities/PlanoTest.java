@@ -29,4 +29,17 @@ class PlanoTest {
         assertThrows(DadosInvalidosException.class, () -> new Plano(TipoPlano.MENSAL, "Mensal", 1, -5));
         assertThrows(DadosInvalidosException.class, () -> new Plano(TipoPlano.MENSAL, "Mensal", 1, Double.NaN));
     }
+
+    @Test
+    void idSoPodeSerAtribuidoUmaVezEDeveSerPositivo() throws Exception {
+        Plano plano = new Plano(TipoPlano.MENSAL, "Mensal", 1, 99.9);
+
+        assertEquals(0, plano.getId());
+        assertThrows(IllegalArgumentException.class, () -> plano.atribuirId(0));
+        assertThrows(IllegalArgumentException.class, () -> plano.atribuirId(-3));
+
+        plano.atribuirId(4);
+        assertEquals(4, plano.getId());
+        assertThrows(IllegalStateException.class, () -> plano.atribuirId(5));
+    }
 }

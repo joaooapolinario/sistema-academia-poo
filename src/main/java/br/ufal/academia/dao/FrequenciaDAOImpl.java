@@ -44,6 +44,10 @@ public class FrequenciaDAOImpl implements FrequenciaDAO {
     @Override
     public void salvar(Frequencia frequencia) {
         exigirFrequencia(frequencia);
+        if (frequencia.getId() != 0) {
+            throw new IllegalArgumentException(
+                    "A frequência já foi salva (id " + frequencia.getId() + "). Use atualizar.");
+        }
         String sql = "INSERT INTO frequencias (matricula_id, data_hora_entrada) VALUES (?, ?)";
 
         try (Connection conn = connectionFactory.getConexao();
@@ -65,6 +69,9 @@ public class FrequenciaDAOImpl implements FrequenciaDAO {
     @Override
     public void atualizar(Frequencia frequencia) {
         exigirFrequencia(frequencia);
+        if (frequencia.getId() <= 0) {
+            throw new IllegalArgumentException("A frequência ainda não foi salva. Use salvar.");
+        }
         String sql = "UPDATE frequencias SET matricula_id = ?, data_hora_entrada = ? WHERE id = ?";
 
         try (Connection conn = connectionFactory.getConexao();

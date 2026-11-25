@@ -62,6 +62,9 @@ public class Frequencia {
         if (id <= 0) {
             throw new IllegalArgumentException("O id deve ser positivo.");
         }
+        if (this.id != 0) {
+            throw new IllegalStateException("O id desta frequência já foi atribuído.");
+        }
         this.id = id;
     }
 

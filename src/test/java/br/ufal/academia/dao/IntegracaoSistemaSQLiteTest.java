@@ -1,5 +1,6 @@
 package br.ufal.academia.dao;
 
+import br.ufal.academia.Main;
 import br.ufal.academia.controller.AlunoController;
 import br.ufal.academia.controller.FrequenciaController;
 import br.ufal.academia.controller.IAlunoController;
@@ -10,6 +11,8 @@ import br.ufal.academia.controller.ITreinoController;
 import br.ufal.academia.controller.InstrutorController;
 import br.ufal.academia.controller.MatriculaController;
 import br.ufal.academia.controller.TreinoController;
+import br.ufal.academia.exception.AcessoNegadoException;
+import br.ufal.academia.exception.MatriculaAtivaExistenteException;
 import br.ufal.academia.model.entities.Aluno;
 import br.ufal.academia.model.entities.Frequencia;
 import br.ufal.academia.model.entities.Instrutor;
@@ -18,7 +21,6 @@ import br.ufal.academia.model.entities.Treino;
 import br.ufal.academia.model.enums.ObjetivoTreino;
 import br.ufal.academia.model.enums.StatusMatricula;
 import br.ufal.academia.model.enums.TipoPlano;
-import br.ufal.academia.model.patterns.factory.PlanoFactory;
 import br.ufal.academia.model.patterns.observer.AlertaInterfaceObserver;
 import br.ufal.academia.model.patterns.observer.LogAuditoriaObserver;
 import br.ufal.academia.model.patterns.observer.MatriculaObserver;
@@ -39,6 +41,7 @@ import java.util.concurrent.atomic.AtomicReference;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 // Teste ponta a ponta: DAOs SQLite + Seed de Planos + Controllers + Observers + todas as 5 Views.
@@ -56,9 +59,10 @@ class IntegracaoSistemaSQLiteTest {
         TreinoDAO treinoDAO = new TreinoDAOImpl(factory, alunoDAO, instrutorDAO);
         FrequenciaDAO frequenciaDAO = new FrequenciaDAOImpl(factory, matriculaDAO);
 
-        for (TipoPlano tipo : TipoPlano.values()) {
-            planoDAO.salvar(PlanoFactory.criar(tipo));
-        }
+        // 0. Seed idempotente de planos no SQLite via Main.inicializarPlanosPadrao
+        Main.inicializarPlanosPadrao(planoDAO);
+        Main.inicializarPlanosPadrao(planoDAO);
+        assertEquals(TipoPlano.values().length, planoDAO.listarTodos().size());
 
         AtomicReference<MatriculaView> matriculaViewRef = new AtomicReference<>();
         LogAuditoriaObserver logObserver = new LogAuditoriaObserver(msg -> { });
@@ -99,6 +103,7 @@ class IntegracaoSistemaSQLiteTest {
         alunoController.atualizarTelefone(aluno.getCpf(), "82988881111");
 
         Aluno alunoPersistido = alunoController.buscarPorCpf("529.982.247-25");
+        assertTrue(alunoPersistido.getId() > 0);
         assertEquals("82988881111", alunoPersistido.getTelefone());
         assertEquals(List.of("Condromalácia patelar"), alunoPersistido.getRestricoesMedicas());
 
@@ -106,28 +111,40 @@ class IntegracaoSistemaSQLiteTest {
         Instrutor instrutor = instrutorController.cadastrar("Carlos Lima", "11144477735", "82977776666",
                 "123456-G/AL", "Musculação");
         instrutorController.atualizarEspecialidade(instrutor.getCref(), "Hipertrofia e Funcional");
-        assertEquals("Hipertrofia e Funcional",
-                instrutorController.buscarPorCref("123456-g/al").getEspecialidade());
+        Instrutor instrutorPersistido = instrutorController.buscarPorCref("123456-g/al");
+        assertTrue(instrutorPersistido.getId() > 0);
+        assertEquals("Hipertrofia e Funcional", instrutorPersistido.getEspecialidade());
 
-        // 3. Matrículas + Strategy + Faturamento + Observer na MatriculaView
+        // 3. Matrículas + Strategy + Faturamento + Bloqueio de matrícula ativa duplicada
         Matricula matricula = matriculaController.matricular(aluno.getCpf(), TipoPlano.MENSAL, true);
+        assertTrue(matricula.getId() > 0);
         assertEquals(79.92, matricula.calcularMensalidade(), 0.001);
         assertEquals(79.92, matriculaController.calcularFaturamentoMensal(), 0.001);
         assertEquals(1, matriculaController.listar().size());
+        assertThrows(MatriculaAtivaExistenteException.class,
+                () -> matriculaController.matricular(aluno.getCpf(), TipoPlano.ANUAL, false));
 
         // 4. Treinos
         Treino treino = treinoController.criar(aluno.getCpf(), instrutor.getCref(), ObjetivoTreino.HIPERTROFIA);
+        assertTrue(treino.getId() > 0);
         treinoController.adicionarExercicio(treino.getId(), "Elevação pélvica - 4x12");
-        assertEquals(1, treinoController.listarPorAluno(aluno.getCpf()).size());
+        List<Treino> treinosAluno = treinoController.listarPorAluno(aluno.getCpf());
+        assertEquals(1, treinosAluno.size());
+        assertTrue(treinosAluno.get(0).getExercicios().contains("Elevação pélvica - 4x12"));
 
-        // 5. Frequência / Catraca
+        // 5. Frequência / Catraca (acesso liberado enquanto matrícula ativa)
         Frequencia entrada = frequenciaController.registrarEntrada(aluno.getCpf());
         assertNotNull(entrada);
+        assertTrue(entrada.getId() > 0);
         assertEquals(1, frequenciaController.contarPresencas(aluno.getCpf(), YearMonth.now()));
 
         // Renovação e cancelamento notificam a MatriculaView (Observer) e persistem no SQLite
         matriculaController.renovar(matricula.getId());
         matriculaController.cancelar(matricula.getId());
+
+        // Após cancelamento, a catraca bloqueia nova entrada mas preserva o histórico anterior
+        assertThrows(AcessoNegadoException.class, () -> frequenciaController.registrarEntrada(aluno.getCpf()));
+        assertEquals(1, frequenciaController.contarPresencas(aluno.getCpf(), YearMonth.now()));
 
         SwingUtilities.invokeAndWait(() -> {
             alunoViewRef.get().recarregar();
