@@ -37,6 +37,12 @@ public class Plano {
 
     // Chamado pelo DAO após o INSERT para registrar o id gerado pelo banco.
     public void atribuirId(int id) {
+        if (id <= 0) {
+            throw new IllegalArgumentException("O id deve ser positivo.");
+        }
+        if (this.id != 0) {
+            throw new IllegalStateException("O id deste plano já foi atribuído.");
+        }
         this.id = id;
     }
 

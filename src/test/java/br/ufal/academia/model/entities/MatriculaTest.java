@@ -168,4 +168,18 @@ class MatriculaTest {
         assertThrows(DadosInvalidosException.class, () -> new Matricula(aluno, trimestral, null, calculo));
         assertThrows(DadosInvalidosException.class, () -> new Matricula(aluno, trimestral, INICIO, null));
     }
+
+    @Test
+    void idSoPodeSerAtribuidoUmaVezEDeveSerPositivo() {
+        assertEquals(0, matricula.getId());
+        assertThrows(IllegalArgumentException.class, () -> matricula.atribuirId(0));
+        assertThrows(IllegalArgumentException.class, () -> matricula.atribuirId(-2));
+
+        matricula.atribuirId(12);
+        assertEquals(12, matricula.getId());
+        assertThrows(IllegalStateException.class, () -> matricula.atribuirId(13));
+        assertThrows(IllegalArgumentException.class, () -> Matricula.reconstituir(
+                0, aluno, trimestral, INICIO, LocalDate.of(2026, 4, 30),
+                StatusMatricula.ATIVA, new CalculoPadraoStrategy()));
+    }
 }

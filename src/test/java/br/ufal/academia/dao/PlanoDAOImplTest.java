@@ -96,6 +96,19 @@ class PlanoDAOImplTest {
     void deveFalharAoAtualizarPlanoInexistente() throws Exception {
         Plano naoSalvo = new Plano(TipoPlano.MENSAL, "Mensal", 1, 99.9);
         assertThrows(IllegalArgumentException.class, () -> dao.atualizar(naoSalvo));
+
+        Plano inexistente = new Plano(TipoPlano.MENSAL, "Mensal", 1, 99.9);
+        inexistente.atribuirId(999);
+        assertThrows(IllegalArgumentException.class, () -> dao.atualizar(inexistente));
+    }
+
+    @Test
+    void naoDeveSalvarOMesmoPlanoDuasVezes() throws Exception {
+        Plano plano = new Plano(TipoPlano.MENSAL, "Mensal", 1, 99.9);
+        dao.salvar(plano);
+
+        assertThrows(IllegalArgumentException.class, () -> dao.salvar(plano));
+        assertEquals(1, dao.listarTodos().size());
     }
 
     @Test

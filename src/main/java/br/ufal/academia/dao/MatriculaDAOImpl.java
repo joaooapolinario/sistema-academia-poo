@@ -49,6 +49,10 @@ public class MatriculaDAOImpl implements MatriculaDAO {
     @Override
     public void salvar(Matricula matricula) {
         exigirMatricula(matricula);
+        if (matricula.getId() != 0) {
+            throw new IllegalArgumentException(
+                    "A matrícula já foi salva (id " + matricula.getId() + "). Use atualizar.");
+        }
         String sql = "INSERT INTO matriculas (aluno_id, plano_id, data_inicio, data_fim, status, tipo_calculo) "
                 + "VALUES (?, ?, ?, ?, ?, ?)";
 
@@ -71,6 +75,9 @@ public class MatriculaDAOImpl implements MatriculaDAO {
     @Override
     public void atualizar(Matricula matricula) {
         exigirMatricula(matricula);
+        if (matricula.getId() <= 0) {
+            throw new IllegalArgumentException("A matrícula ainda não foi salva. Use salvar.");
+        }
         String sql = "UPDATE matriculas SET aluno_id = ?, plano_id = ?, data_inicio = ?, data_fim = ?, "
                 + "status = ?, tipo_calculo = ? WHERE id = ?";
 

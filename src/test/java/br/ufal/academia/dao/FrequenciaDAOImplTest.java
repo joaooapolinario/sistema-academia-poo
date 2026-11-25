@@ -139,6 +139,19 @@ class FrequenciaDAOImplTest {
     void deveFalharAoAtualizarFrequenciaInexistente() throws Exception {
         Frequencia naoSalva = new Frequencia(matriculaMaria, LocalDateTime.of(2026, 11, 10, 8, 0));
         assertThrows(IllegalArgumentException.class, () -> dao.atualizar(naoSalva));
+
+        Frequencia inexistente = Frequencia.reconstituir(
+                999, matriculaMaria, LocalDateTime.of(2026, 11, 10, 8, 0));
+        assertThrows(IllegalArgumentException.class, () -> dao.atualizar(inexistente));
+    }
+
+    @Test
+    void naoDeveSalvarAMesmaFrequenciaDuasVezes() throws Exception {
+        Frequencia frequencia = new Frequencia(matriculaMaria, LocalDateTime.of(2026, 11, 10, 8, 0));
+        dao.salvar(frequencia);
+
+        assertThrows(IllegalArgumentException.class, () -> dao.salvar(frequencia));
+        assertEquals(1, dao.listarTodos().size());
     }
 
     @Test

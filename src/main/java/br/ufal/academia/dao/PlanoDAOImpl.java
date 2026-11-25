@@ -34,6 +34,9 @@ public class PlanoDAOImpl implements PlanoDAO {
     @Override
     public void salvar(Plano plano) {
         exigirPlano(plano);
+        if (plano.getId() != 0) {
+            throw new IllegalArgumentException("O plano já foi salvo (id " + plano.getId() + "). Use atualizar.");
+        }
         String sql = "INSERT INTO planos (tipo, nome, duracao_meses, valor_mensal) VALUES (?, ?, ?, ?)";
 
         try (Connection conn = connectionFactory.getConexao();
@@ -54,6 +57,9 @@ public class PlanoDAOImpl implements PlanoDAO {
     @Override
     public void atualizar(Plano plano) {
         exigirPlano(plano);
+        if (plano.getId() <= 0) {
+            throw new IllegalArgumentException("O plano ainda não foi salvo. Use salvar.");
+        }
         String sql = "UPDATE planos SET tipo = ?, nome = ?, duracao_meses = ?, valor_mensal = ? WHERE id = ?";
 
         try (Connection conn = connectionFactory.getConexao();
