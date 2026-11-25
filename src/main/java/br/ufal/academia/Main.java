@@ -29,7 +29,9 @@ import br.ufal.academia.model.patterns.factory.PlanoFactory;
 import br.ufal.academia.model.patterns.observer.AlertaInterfaceObserver;
 import br.ufal.academia.model.patterns.observer.LogAuditoriaObserver;
 import br.ufal.academia.model.patterns.observer.MatriculaObserver;
+import br.ufal.academia.view.FrequenciaView;
 import br.ufal.academia.view.TelaPrincipal;
+import br.ufal.academia.view.TreinoView;
 import com.formdev.flatlaf.FlatLightLaf;
 
 import javax.swing.SwingUtilities;
@@ -79,6 +81,8 @@ public class Main {
                     matriculaController,
                     treinoController,
                     frequenciaController);
+            telaPrincipal.definirConteudoAba(TelaPrincipal.ABA_TREINOS, new TreinoView(treinoController));
+            telaPrincipal.definirConteudoAba(TelaPrincipal.ABA_FREQUENCIA, new FrequenciaView(frequenciaController));
             telaRef.set(telaPrincipal);
             alertaInterfaceObserver.getUltimoAlerta().ifPresent(telaPrincipal::exibirNotificacao);
             telaPrincipal.setVisible(true);
