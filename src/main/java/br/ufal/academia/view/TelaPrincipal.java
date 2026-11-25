@@ -19,9 +19,9 @@ import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 import java.awt.BorderLayout;
 import java.awt.Color;
+import java.awt.Component;
 import java.awt.Dimension;
 import java.awt.Font;
-import java.awt.GridBagLayout;
 import java.util.function.Consumer;
 
 // Janela principal da aplicação Swing, com navegação por abas para os 5 módulos e barra inferior de notificações.
@@ -60,21 +60,11 @@ public class TelaPrincipal extends JFrame {
                 matriculaController,
                 treinoController,
                 frequenciaController,
-                criarPainelPlaceholder(
-                        "Gestão de Alunos",
-                        "Cadastro, consulta, atualização de telefone, restrições médicas e remoção de alunos."),
-                criarPainelPlaceholder(
-                        "Gestão de Instrutores",
-                        "Cadastro, consulta por CREF, atualização de especialidade e remoção de instrutores."),
-                criarPainelPlaceholder(
-                        "Gestão de Matrículas",
-                        "Emissão de matrículas, renovação, cancelamento, vencimentos e faturamento mensal."),
-                criarPainelPlaceholder(
-                        "Fichas de Treino",
-                        "Prescrição automática por objetivo e manutenção personalizada de exercícios."),
-                criarPainelPlaceholder(
-                        "Catraca / Frequência",
-                        "Validação de entrada por CPF na catraca e acompanhamento mensal de presenças."));
+                new AlunoView(alunoController),
+                new InstrutorView(instrutorController),
+                new MatriculaView(matriculaController, alunoController),
+                new TreinoView(treinoController),
+                new FrequenciaView(frequenciaController));
     }
 
     public TelaPrincipal(
@@ -140,6 +130,7 @@ public class TelaPrincipal extends JFrame {
         tabbedPane.addTab("Matrículas", painelMatriculas);
         tabbedPane.addTab("Treinos", painelTreinos);
         tabbedPane.addTab("Catraca / Frequência", painelFrequencia);
+        tabbedPane.addChangeListener(e -> atualizarAbaSelecionada());
         raiz.add(tabbedPane, BorderLayout.CENTER);
 
         raiz.add(criarBarraNotificacoes(), BorderLayout.SOUTH);
@@ -271,37 +262,15 @@ public class TelaPrincipal extends JFrame {
         return frequenciaController;
     }
 
-    private static JPanel criarPainelPlaceholder(String tituloModulo, String descricaoModulo) {
-        JPanel externo = new JPanel(new GridBagLayout());
-        externo.setBorder(BorderFactory.createEmptyBorder(24, 24, 24, 24));
-
-        JPanel cartao = new JPanel();
-        cartao.setLayout(new BoxLayout(cartao, BoxLayout.Y_AXIS));
-        cartao.setBorder(BorderFactory.createCompoundBorder(
-                BorderFactory.createLineBorder(obterCorSeparador(), 1, true),
-                BorderFactory.createEmptyBorder(24, 32, 24, 32)));
-
-        JLabel lblTitulo = new JLabel(tituloModulo);
-        lblTitulo.setFont(lblTitulo.getFont().deriveFont(Font.BOLD, 16f));
-        lblTitulo.setAlignmentX(CENTER_ALIGNMENT);
-
-        JLabel lblDescricao = new JLabel(descricaoModulo);
-        lblDescricao.setForeground(obterCorTextoSecundario());
-        lblDescricao.setAlignmentX(CENTER_ALIGNMENT);
-
-        JLabel lblStatus = new JLabel("Painel do módulo pronto para integração da tela específica.");
-        lblStatus.setFont(lblStatus.getFont().deriveFont(Font.ITALIC, 12f));
-        lblStatus.setForeground(obterCorTextoSecundario());
-        lblStatus.setAlignmentX(CENTER_ALIGNMENT);
-
-        cartao.add(lblTitulo);
-        cartao.add(Box.createVerticalStrut(8));
-        cartao.add(lblDescricao);
-        cartao.add(Box.createVerticalStrut(12));
-        cartao.add(lblStatus);
-
-        externo.add(cartao);
-        return externo;
+    private void atualizarAbaSelecionada() {
+        Component componente = tabbedPane.getSelectedComponent();
+        if (componente instanceof AlunoView alunoView) {
+            alunoView.recarregar();
+        } else if (componente instanceof InstrutorView instrutorView) {
+            instrutorView.recarregar();
+        } else if (componente instanceof MatriculaView matriculaView) {
+            matriculaView.recarregar();
+        }
     }
 
     private static Color obterCorSeparador() {
