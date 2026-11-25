@@ -107,12 +107,15 @@ public class Matricula {
         renovar(LocalDate.now());
     }
 
-    // ATIVA estende a partir da data de fim atual; VENCIDA recomeça a partir de hoje; CANCELADA não renova.
+    // ATIVA vigente estende a partir da data de fim atual; VENCIDA (ou com prazo expirado) recomeça a partir de hoje; CANCELADA não renova.
     public void renovar(LocalDate hoje) throws DadosInvalidosException {
+        if (hoje == null) {
+            throw new DadosInvalidosException("A data de referência para renovação é obrigatória.");
+        }
         if (status == StatusMatricula.CANCELADA) {
             throw new DadosInvalidosException("Uma matrícula cancelada não pode ser renovada.");
         }
-        LocalDate base = (status == StatusMatricula.VENCIDA) ? hoje : dataFim;
+        LocalDate base = (status == StatusMatricula.VENCIDA || isVencida(hoje)) ? hoje : dataFim;
         dataInicio = base;
         dataFim = base.plusMonths(plano.getDuracaoMeses());
         status = StatusMatricula.ATIVA;

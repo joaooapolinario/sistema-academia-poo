@@ -114,6 +114,24 @@ class MatriculaTest {
     }
 
     @Test
+    void renovarMatriculaAtivaComPrazoExpiradoRecomecaAPartirDeHoje() throws Exception {
+        LocalDate hoje = LocalDate.of(2026, 8, 10);
+
+        // Status ainda está ATIVA, mas isVencida(hoje) é true (prazo terminou em 30/04).
+        matricula.renovar(hoje);
+
+        assertEquals(StatusMatricula.ATIVA, matricula.getStatus());
+        assertEquals(hoje, matricula.getDataInicio());
+        assertEquals(LocalDate.of(2026, 11, 10), matricula.getDataFim());
+        assertEquals(List.of(StatusMatricula.ATIVA), notificacoes);
+    }
+
+    @Test
+    void naoDeveRenovarComDataNula() {
+        assertThrows(DadosInvalidosException.class, () -> matricula.renovar(null));
+    }
+
+    @Test
     void naoDeveRenovarMatriculaCancelada() throws Exception {
         matricula.cancelar();
 
