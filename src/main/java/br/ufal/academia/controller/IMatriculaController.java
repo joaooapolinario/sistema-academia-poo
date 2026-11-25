@@ -14,6 +14,7 @@ public interface IMatriculaController {
     void cancelar(int idMatricula) throws DadosInvalidosException;
     void renovar(int idMatricula) throws DadosInvalidosException;
     void atualizarVencimentos();
+    List<Matricula> listar();
     List<Matricula> listarAVencer(int dias) throws DadosInvalidosException;
     double calcularFaturamentoMensal();
 }

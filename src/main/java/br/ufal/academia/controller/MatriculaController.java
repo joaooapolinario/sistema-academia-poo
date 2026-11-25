@@ -136,6 +136,11 @@ public class MatriculaController implements IMatriculaController {
     }
 
     @Override
+    public List<Matricula> listar() {
+        return List.copyOf(matriculaDAO.listarTodos());
+    }
+
+    @Override
     public List<Matricula> listarAVencer(int dias) throws DadosInvalidosException {
         if (dias < 0) {
             throw new DadosInvalidosException("A quantidade de dias não pode ser negativa.");

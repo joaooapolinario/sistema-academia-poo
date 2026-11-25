@@ -29,7 +29,10 @@ import br.ufal.academia.model.patterns.factory.PlanoFactory;
 import br.ufal.academia.model.patterns.observer.AlertaInterfaceObserver;
 import br.ufal.academia.model.patterns.observer.LogAuditoriaObserver;
 import br.ufal.academia.model.patterns.observer.MatriculaObserver;
+import br.ufal.academia.view.AlunoView;
 import br.ufal.academia.view.FrequenciaView;
+import br.ufal.academia.view.InstrutorView;
+import br.ufal.academia.view.MatriculaView;
 import br.ufal.academia.view.TelaPrincipal;
 import br.ufal.academia.view.TreinoView;
 import com.formdev.flatlaf.FlatLightLaf;
@@ -57,6 +60,7 @@ public class Main {
         inicializarPlanosPadrao(planoDAO);
 
         AtomicReference<TelaPrincipal> telaRef = new AtomicReference<>();
+        AtomicReference<MatriculaView> matriculaViewRef = new AtomicReference<>();
         LogAuditoriaObserver logAuditoriaObserver = new LogAuditoriaObserver();
         AlertaInterfaceObserver alertaInterfaceObserver = new AlertaInterfaceObserver(mensagem -> {
             TelaPrincipal tela = telaRef.get();
@@ -64,7 +68,14 @@ public class Main {
                 tela.exibirNotificacao(mensagem);
             }
         });
-        List<MatriculaObserver> observers = List.of(logAuditoriaObserver, alertaInterfaceObserver);
+        MatriculaObserver matriculaViewObserver = matricula -> {
+            MatriculaView matriculaView = matriculaViewRef.get();
+            if (matriculaView != null) {
+                matriculaView.atualizar(matricula);
+            }
+        };
+        List<MatriculaObserver> observers = List.of(
+                logAuditoriaObserver, alertaInterfaceObserver, matriculaViewObserver);
 
         IAlunoController alunoController = new AlunoController(alunoDAO);
         IInstrutorController instrutorController = new InstrutorController(instrutorDAO);
@@ -75,14 +86,24 @@ public class Main {
                 frequenciaDAO, alunoDAO, matriculaDAO, observers);
 
         SwingUtilities.invokeLater(() -> {
+            AlunoView alunoView = new AlunoView(alunoController);
+            InstrutorView instrutorView = new InstrutorView(instrutorController);
+            MatriculaView matriculaView = new MatriculaView(matriculaController, alunoController);
+            TreinoView treinoView = new TreinoView(treinoController);
+            FrequenciaView frequenciaView = new FrequenciaView(frequenciaController);
+            matriculaViewRef.set(matriculaView);
+
             TelaPrincipal telaPrincipal = new TelaPrincipal(
                     alunoController,
                     instrutorController,
                     matriculaController,
                     treinoController,
-                    frequenciaController);
-            telaPrincipal.definirConteudoAba(TelaPrincipal.ABA_TREINOS, new TreinoView(treinoController));
-            telaPrincipal.definirConteudoAba(TelaPrincipal.ABA_FREQUENCIA, new FrequenciaView(frequenciaController));
+                    frequenciaController,
+                    alunoView,
+                    instrutorView,
+                    matriculaView,
+                    treinoView,
+                    frequenciaView);
             telaRef.set(telaPrincipal);
             alertaInterfaceObserver.getUltimoAlerta().ifPresent(telaPrincipal::exibirNotificacao);
             telaPrincipal.setVisible(true);

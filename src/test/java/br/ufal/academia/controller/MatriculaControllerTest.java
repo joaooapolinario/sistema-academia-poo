@@ -279,6 +279,19 @@ class MatriculaControllerTest {
     }
 
     @Test
+    void deveListarTodasAsMatriculasEmListaImutavel() throws Exception {
+        IMatriculaController controller = criarController(RELOGIO_NOVEMBRO);
+        Matricula ativa = controller.matricular(maria.getCpf(), TipoPlano.MENSAL, false);
+        Matricula cancelada = controller.matricular(joaoIdoso.getCpf(), TipoPlano.TRIMESTRAL, false);
+        controller.cancelar(cancelada.getId());
+
+        List<Matricula> todas = controller.listar();
+
+        assertEquals(List.of(ativa, cancelada), todas);
+        assertThrows(UnsupportedOperationException.class, () -> todas.add(ativa));
+    }
+
+    @Test
     void deveListarMatriculasAVencerDentroDaJanelaEmListaImutavelOrdenada() throws Exception {
         // Expirada ontem (2026-11-14) - fora
         Matricula expirada = new Matricula(maria, mensal, LocalDate.of(2026, 10, 14), new CalculoPadraoStrategy());
