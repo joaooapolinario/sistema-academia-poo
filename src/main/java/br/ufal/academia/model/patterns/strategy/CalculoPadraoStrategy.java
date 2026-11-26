@@ -9,7 +9,10 @@ public class CalculoPadraoStrategy implements CalculoMensalidadeStrategy {
 
     @Override
     public double calcular(Plano plano) {
-        return Dinheiro.arredondar(plano.getValorMensal());
+        if (plano == null) {
+            throw new IllegalArgumentException("O plano não pode ser nulo.");
+        }
+        return arredondar(plano.getValorMensal());
     }
 
     @Override

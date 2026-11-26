@@ -27,6 +27,7 @@ import java.util.Optional;
 public class MatriculaController implements IMatriculaController {
 
     private static final int IDADE_DESCONTO_IDOSO = 60;
+    private static final CalculoMensalidadeStrategy CALCULO_PADRAO = new CalculoPadraoStrategy();
 
     private final MatriculaDAO matriculaDAO;
     private final AlunoDAO alunoDAO;
@@ -154,13 +155,32 @@ public class MatriculaController implements IMatriculaController {
     }
 
     @Override
+    public List<Plano> listarPlanos() {
+        return List.copyOf(planoDAO.listarTodos());
+    }
+
+    @Override
+    public double simularMensalidade(String cpfAluno, TipoPlano tipo, boolean estudante)
+            throws DadosInvalidosException {
+        String cpfNormalizado = normalizarCpf(cpfAluno);
+        if (tipo == null) {
+            throw new DadosInvalidosException("O tipo do plano é obrigatório.");
+        }
+        Aluno aluno = alunoDAO.buscarPorCpf(cpfNormalizado).orElseThrow(
+                () -> new DadosInvalidosException("Aluno não encontrado para o CPF informado."));
+        Plano plano = planoDAO.buscarPorTipo(tipo).orElseThrow(
+                () -> new DadosInvalidosException("Plano não encontrado para o tipo informado: " + tipo));
+        return escolherCalculo(aluno, estudante).calcular(plano);
+    }
+
+    @Override
     public double calcularFaturamentoMensal() {
         LocalDate hoje = LocalDate.now(clock);
         double total = matriculaDAO.listarPorStatus(StatusMatricula.ATIVA).stream()
                 .filter(m -> !m.isVencida(hoje))
                 .mapToDouble(Matricula::calcularMensalidade)
                 .sum();
-        return Math.round(total * 100.0) / 100.0;
+        return CALCULO_PADRAO.arredondar(total);
     }
 
     private CalculoMensalidadeStrategy escolherCalculo(Aluno aluno, boolean estudante) {

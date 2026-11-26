@@ -51,4 +51,15 @@ class CalculoMensalidadeStrategyTest {
         assertEquals("ESTUDANTE", new DescontoEstudanteStrategy().identificador());
         assertEquals("IDOSO", new DescontoIdosoStrategy().identificador());
     }
+
+    @Test
+    void deveRejeitarPlanoNuloEValoresNaoFinitosAoArredondar() {
+        CalculoMensalidadeStrategy padrao = new CalculoPadraoStrategy();
+        assertThrows(IllegalArgumentException.class, () -> padrao.calcular(null));
+        assertThrows(IllegalArgumentException.class, () -> new DescontoEstudanteStrategy().calcular(null));
+        assertThrows(IllegalArgumentException.class, () -> new DescontoIdosoStrategy().calcular(null));
+        assertEquals(10.01, padrao.arredondar(10.005), 0.0001);
+        assertThrows(IllegalArgumentException.class, () -> padrao.arredondar(Double.NaN));
+        assertThrows(IllegalArgumentException.class, () -> padrao.arredondar(Double.POSITIVE_INFINITY));
+    }
 }

@@ -10,7 +10,10 @@ public class DescontoIdosoStrategy implements CalculoMensalidadeStrategy {
 
     @Override
     public double calcular(Plano plano) {
-        return Dinheiro.arredondar(plano.getValorMensal() * (1 - PERCENTUAL_DESCONTO));
+        if (plano == null) {
+            throw new IllegalArgumentException("O plano não pode ser nulo.");
+        }
+        return arredondar(plano.getValorMensal() * (1 - PERCENTUAL_DESCONTO));
     }
 
     @Override

@@ -10,14 +10,13 @@ import br.ufal.academia.model.entities.Aluno;
 import br.ufal.academia.model.entities.Frequencia;
 import br.ufal.academia.model.entities.Instrutor;
 import br.ufal.academia.model.entities.Matricula;
+import br.ufal.academia.model.entities.Plano;
 import br.ufal.academia.model.entities.Treino;
 import br.ufal.academia.model.enums.ObjetivoTreino;
 import br.ufal.academia.model.enums.TipoPlano;
 import br.ufal.academia.model.patterns.factory.PlanoFactory;
 import br.ufal.academia.model.patterns.observer.MatriculaObserver;
 import br.ufal.academia.model.patterns.strategy.CalculoPadraoStrategy;
-import br.ufal.academia.model.patterns.strategy.DescontoEstudanteStrategy;
-import br.ufal.academia.model.patterns.strategy.DescontoIdosoStrategy;
 import org.junit.jupiter.api.Assumptions;
 import org.junit.jupiter.api.Test;
 
@@ -56,25 +55,29 @@ class ViewsTest {
     }
 
     @Test
-    void matriculaViewDeveCalcularPreviewComEstrategiasCorretas() throws Exception {
-        Aluno adulto = new Aluno("Maria Souza", "52998224725", "82999990000",
+    void matriculaViewDeveDelegarSimulacaoDeMensalidadeAoController() throws Exception {
+        Aluno aluno = new Aluno("Maria Souza", "52998224725", "82999990000",
                 LocalDate.now().minusYears(25), ObjetivoTreino.HIPERTROFIA);
-        Aluno idoso = new Aluno("João Silva", "11144477735", "82988887777",
-                LocalDate.now().minusYears(65), ObjetivoTreino.REABILITACAO);
+        Plano planoMensal = PlanoFactory.criar(TipoPlano.MENSAL);
+        MatriculaControllerStub matriculaController = new MatriculaControllerStub(
+                List.of(), 0.0, List.of(planoMensal), 79.92);
+        AlunoControllerStub alunoController = new AlunoControllerStub(List.of(aluno));
 
-        assertInstanceOf(CalculoPadraoStrategy.class, MatriculaView.escolherEstrategiaPreview(adulto, false));
-        assertInstanceOf(DescontoEstudanteStrategy.class, MatriculaView.escolherEstrategiaPreview(adulto, true));
-        assertInstanceOf(DescontoIdosoStrategy.class, MatriculaView.escolherEstrategiaPreview(idoso, false));
-        assertInstanceOf(DescontoIdosoStrategy.class, MatriculaView.escolherEstrategiaPreview(idoso, true));
+        AtomicReference<MatriculaView> viewRef = new AtomicReference<>();
+        SwingUtilities.invokeAndWait(() -> viewRef.set(new MatriculaView(matriculaController, alunoController)));
+        MatriculaView view = viewRef.get();
 
-        String previewPadrao = MatriculaView.formatarPreview(adulto, TipoPlano.MENSAL, false);
-        String previewEstudante = MatriculaView.formatarPreview(adulto, TipoPlano.MENSAL, true);
-        String previewIdosoEstudante = MatriculaView.formatarPreview(idoso, TipoPlano.MENSAL, true);
+        assertEquals(1, matriculaController.chamadasListarPlanos);
+        assertEquals("Selecione um plano para calcular a mensalidade.", view.getTextoPreview());
+        assertEquals("Selecione um aluno para calcular a mensalidade.",
+                view.formatarPreview(null, planoMensal, false));
 
-        assertTrue(previewPadrao.contains("99,90"), "Preview padrão inesperado: " + previewPadrao);
-        assertTrue(previewEstudante.contains("79,92"), "Preview estudante inesperado: " + previewEstudante);
-        assertTrue(previewIdosoEstudante.contains("69,93"), "Preview idoso inesperado: " + previewIdosoEstudante);
-        assertTrue(previewIdosoEstudante.contains("prioritário"));
+        String preview = view.formatarPreview(aluno, planoMensal, true);
+        assertTrue(preview.contains("79,92"), "Preview inesperado: " + preview);
+        assertTrue(preview.contains("1 mês"), "Vigência inesperada: " + preview);
+        assertEquals(aluno.getCpf(), matriculaController.ultimoCpfSimulado);
+        assertEquals(TipoPlano.MENSAL, matriculaController.ultimoTipoSimulado);
+        assertTrue(matriculaController.ultimoEstudanteSimulado);
     }
 
     @Test
@@ -186,14 +189,27 @@ class ViewsTest {
     private static class MatriculaControllerStub implements IMatriculaController {
         private final List<Matricula> matriculas;
         private final double faturamento;
+        private final List<Plano> planos;
+        private final double valorSimulado;
+        private int chamadasListarPlanos;
+        private String ultimoCpfSimulado;
+        private TipoPlano ultimoTipoSimulado;
+        private boolean ultimoEstudanteSimulado;
 
         MatriculaControllerStub() {
-            this(List.of(), 0.0);
+            this(List.of(), 0.0, List.of(), 0.0);
         }
 
         MatriculaControllerStub(List<Matricula> matriculas, double faturamento) {
+            this(matriculas, faturamento, List.of(), 0.0);
+        }
+
+        MatriculaControllerStub(List<Matricula> matriculas, double faturamento,
+                                List<Plano> planos, double valorSimulado) {
             this.matriculas = new ArrayList<>(matriculas);
             this.faturamento = faturamento;
+            this.planos = new ArrayList<>(planos);
+            this.valorSimulado = valorSimulado;
         }
 
         @Override
@@ -213,6 +229,20 @@ class ViewsTest {
         @Override
         public List<Matricula> listarAVencer(int dias) {
             return List.copyOf(matriculas);
+        }
+
+        @Override
+        public List<Plano> listarPlanos() {
+            chamadasListarPlanos++;
+            return List.copyOf(planos);
+        }
+
+        @Override
+        public double simularMensalidade(String cpfAluno, TipoPlano tipo, boolean estudante) {
+            this.ultimoCpfSimulado = cpfAluno;
+            this.ultimoTipoSimulado = tipo;
+            this.ultimoEstudanteSimulado = estudante;
+            return valorSimulado;
         }
 
         @Override
