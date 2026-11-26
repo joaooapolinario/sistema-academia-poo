@@ -54,6 +54,8 @@ class MatriculaTest {
     void naoDeveEstarVencidaAteOUltimoDia() {
         assertFalse(matricula.isVencida(LocalDate.of(2026, 4, 30)));
         assertTrue(matricula.isVencida(LocalDate.of(2026, 5, 1)));
+        assertThrows(IllegalArgumentException.class, () -> matricula.isVencida(null));
+        assertThrows(IllegalArgumentException.class, () -> matricula.verificarVencimento(null));
     }
 
     @Test

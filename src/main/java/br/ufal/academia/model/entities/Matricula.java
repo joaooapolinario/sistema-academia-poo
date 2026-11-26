@@ -84,6 +84,9 @@ public class Matricula {
 
     // Uma matrícula está vencida quando continua ATIVA após a data de fim (o último dia ainda é válido).
     public boolean isVencida(LocalDate hoje) {
+        if (hoje == null) {
+            throw new IllegalArgumentException("A data de referência não pode ser nula.");
+        }
         return status == StatusMatricula.ATIVA && hoje.isAfter(dataFim);
     }
 

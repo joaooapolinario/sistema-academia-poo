@@ -9,12 +9,7 @@ import br.ufal.academia.model.entities.Matricula;
 import br.ufal.academia.model.entities.Plano;
 import br.ufal.academia.model.enums.StatusMatricula;
 import br.ufal.academia.model.enums.TipoPlano;
-import br.ufal.academia.model.patterns.factory.PlanoFactory;
 import br.ufal.academia.model.patterns.observer.MatriculaObserver;
-import br.ufal.academia.model.patterns.strategy.CalculoMensalidadeStrategy;
-import br.ufal.academia.model.patterns.strategy.CalculoPadraoStrategy;
-import br.ufal.academia.model.patterns.strategy.DescontoEstudanteStrategy;
-import br.ufal.academia.model.patterns.strategy.DescontoIdosoStrategy;
 
 import javax.swing.BorderFactory;
 import javax.swing.DefaultComboBoxModel;
@@ -51,7 +46,6 @@ import java.util.Locale;
 // atualização de vencimentos, filtro de matrículas a vencer, indicador de faturamento mensal e Observer.
 public class MatriculaView extends JPanel implements MatriculaObserver {
 
-    private static final int IDADE_DESCONTO_IDOSO = 60;
     private static final DateTimeFormatter FORMATO_DATA = DateTimeFormatter.ofPattern("dd/MM/yyyy");
     private static final Locale LOCALE_BR = Locale.forLanguageTag("pt-BR");
     private static final Color COR_PREVIEW = new Color(29, 78, 216);
@@ -64,8 +58,9 @@ public class MatriculaView extends JPanel implements MatriculaObserver {
 
     private final DefaultComboBoxModel<Aluno> modeloAlunos = new DefaultComboBoxModel<>();
     private final JComboBox<Aluno> cmbAluno = new JComboBox<>(modeloAlunos);
-    private final JComboBox<TipoPlano> cmbTipoPlano = new JComboBox<>(TipoPlano.values());
-    private final JCheckBox chkEstudante = new JCheckBox("Estudante (20% de desconto)");
+    private final DefaultComboBoxModel<Plano> modeloPlanos = new DefaultComboBoxModel<>();
+    private final JComboBox<Plano> cmbPlano = new JComboBox<>(modeloPlanos);
+    private final JCheckBox chkEstudante = new JCheckBox("Estudante (desconto)");
     private final JLabel lblPreviewValor = new JLabel();
 
     private final JSpinner spnDiasAVencer = new JSpinner(new SpinnerNumberModel(7, 0, 3650, 1));
@@ -127,28 +122,25 @@ public class MatriculaView extends JPanel implements MatriculaObserver {
             }
         });
 
-        cmbTipoPlano.setRenderer(new DefaultListCellRenderer() {
+        cmbPlano.setRenderer(new DefaultListCellRenderer() {
             @Override
             public Component getListCellRendererComponent(JList<?> list, Object value, int index,
                                                           boolean isSelected, boolean cellHasFocus) {
                 super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
-                if (value instanceof TipoPlano tipo) {
-                    try {
-                        Plano plano = PlanoFactory.criar(tipo);
-                        String unidade = plano.getDuracaoMeses() == 1 ? "mês" : "meses";
-                        setText(plano.getNome() + " (" + plano.getDuracaoMeses() + " " + unidade
-                                + " — " + formatarMoeda(plano.getValorMensal()) + "/mês)");
-                    } catch (DadosInvalidosException e) {
-                        setText(tipo.name());
-                    }
+                if (value instanceof Plano plano) {
+                    String unidade = plano.getDuracaoMeses() == 1 ? "mês" : "meses";
+                    setText(plano.getNome() + " (" + plano.getDuracaoMeses() + " " + unidade
+                            + " — " + formatarMoeda(plano.getValorMensal()) + "/mês)");
+                } else {
+                    setText("Selecione um plano");
                 }
                 return this;
             }
         });
 
-        cmbTipoPlano.setSelectedIndex(-1);
+        cmbPlano.setSelectedIndex(-1);
         cmbAluno.addActionListener(e -> atualizarPreview());
-        cmbTipoPlano.addActionListener(e -> atualizarPreview());
+        cmbPlano.addActionListener(e -> atualizarPreview());
         chkEstudante.addActionListener(e -> atualizarPreview());
 
         JButton btnAtualizarAlunos = new JButton("Atualizar alunos");
@@ -193,7 +185,7 @@ public class MatriculaView extends JPanel implements MatriculaObserver {
         gbc.gridx = 1;
         gbc.weightx = 1.0;
         gbc.fill = GridBagConstraints.HORIZONTAL;
-        painel.add(cmbTipoPlano, gbc);
+        painel.add(cmbPlano, gbc);
 
         gbc.gridx = 2;
         gbc.gridwidth = 2;
@@ -304,12 +296,37 @@ public class MatriculaView extends JPanel implements MatriculaObserver {
     }
 
     public void recarregar() {
+        recarregarPlanos();
         recarregarAlunos();
         Matricula selecionada = matriculaSelecionada();
         int idSelecionado = selecionada != null ? selecionada.getId() : 0;
         recarregarMatriculas(idSelecionado);
         atualizarFaturamento();
         atualizarPreview();
+    }
+
+    private void recarregarPlanos() {
+        Plano selecionadoAnterior = (Plano) cmbPlano.getSelectedItem();
+        TipoPlano tipoSelecionado = selecionadoAnterior != null ? selecionadoAnterior.getTipo() : null;
+
+        try {
+            List<Plano> planos = controller.listarPlanos();
+            modeloPlanos.removeAllElements();
+            Plano paraSelecionar = null;
+            for (Plano plano : planos) {
+                modeloPlanos.addElement(plano);
+                if (tipoSelecionado != null && plano.getTipo() == tipoSelecionado) {
+                    paraSelecionar = plano;
+                }
+            }
+            if (paraSelecionar != null) {
+                cmbPlano.setSelectedItem(paraSelecionar);
+            } else {
+                cmbPlano.setSelectedIndex(-1);
+            }
+        } catch (RuntimeException e) {
+            mostrarErroInesperado(e);
+        }
     }
 
     private void recarregarAlunos() {
@@ -338,46 +355,26 @@ public class MatriculaView extends JPanel implements MatriculaObserver {
     }
 
     private void atualizarPreview() {
-        TipoPlano tipo = (TipoPlano) cmbTipoPlano.getSelectedItem();
-        if (tipo == null) {
-            lblPreviewValor.setText("Selecione um plano para calcular a mensalidade.");
-            return;
-        }
+        Plano plano = (Plano) cmbPlano.getSelectedItem();
         Aluno aluno = (Aluno) cmbAluno.getSelectedItem();
-        lblPreviewValor.setText(formatarPreview(aluno, tipo, chkEstudante.isSelected()));
+        lblPreviewValor.setText(formatarPreview(aluno, plano, chkEstudante.isSelected()));
     }
 
-    static String formatarPreview(Aluno aluno, TipoPlano tipo, boolean estudante) {
+    String formatarPreview(Aluno aluno, Plano plano, boolean estudante) {
+        if (plano == null) {
+            return "Selecione um plano para calcular a mensalidade.";
+        }
+        if (aluno == null) {
+            return "Selecione um aluno para calcular a mensalidade.";
+        }
         try {
-            Plano plano = PlanoFactory.criar(tipo);
-            CalculoMensalidadeStrategy estrategia = escolherEstrategiaPreview(aluno, estudante);
-            double valorFinal = estrategia.calcular(plano);
-            String regra;
-            if (estrategia instanceof DescontoIdosoStrategy) {
-                regra = estudante
-                        ? "Desconto Idoso 30% (prioritário sobre estudante)"
-                        : "Desconto Idoso 30% (60+ anos)";
-            } else if (estrategia instanceof DescontoEstudanteStrategy) {
-                regra = "Desconto Estudante 20%";
-            } else {
-                regra = "Valor padrão";
-            }
+            double valorFinal = controller.simularMensalidade(aluno.getCpf(), plano.getTipo(), estudante);
             String unidade = plano.getDuracaoMeses() == 1 ? "mês" : "meses";
-            return "Valor final: " + formatarMoeda(valorFinal) + "/mês (" + regra
-                    + " — vigência de " + plano.getDuracaoMeses() + " " + unidade + ")";
-        } catch (DadosInvalidosException e) {
+            return "Valor final: " + formatarMoeda(valorFinal) + "/mês"
+                    + " (vigência de " + plano.getDuracaoMeses() + " " + unidade + ")";
+        } catch (DadosInvalidosException | RuntimeException e) {
             return "Não foi possível calcular o valor do plano.";
         }
-    }
-
-    static CalculoMensalidadeStrategy escolherEstrategiaPreview(Aluno aluno, boolean estudante) {
-        if (aluno != null && aluno.getIdade() >= IDADE_DESCONTO_IDOSO) {
-            return new DescontoIdosoStrategy();
-        }
-        if (estudante) {
-            return new DescontoEstudanteStrategy();
-        }
-        return new CalculoPadraoStrategy();
     }
 
     private void abrirMatricula() {
@@ -390,7 +387,8 @@ public class MatriculaView extends JPanel implements MatriculaObserver {
                     JOptionPane.WARNING_MESSAGE);
             return;
         }
-        TipoPlano tipo = (TipoPlano) cmbTipoPlano.getSelectedItem();
+        Plano plano = (Plano) cmbPlano.getSelectedItem();
+        TipoPlano tipo = plano != null ? plano.getTipo() : null;
         try {
             Matricula matricula = controller.matricular(aluno.getCpf(), tipo, chkEstudante.isSelected());
             filtroDiasAtivo = null;

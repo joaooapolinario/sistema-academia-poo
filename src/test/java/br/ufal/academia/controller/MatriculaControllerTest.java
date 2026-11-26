@@ -351,6 +351,27 @@ class MatriculaControllerTest {
     }
 
     @Test
+    void deveListarPlanosDisponiveisEmListaImutavel() {
+        IMatriculaController controller = criarController(RELOGIO_NOVEMBRO);
+
+        List<Plano> planos = controller.listarPlanos();
+
+        assertEquals(List.of(mensal, trimestral), planos);
+        assertThrows(UnsupportedOperationException.class, () -> planos.add(mensal));
+    }
+
+    @Test
+    void deveSimularMensalidadeAplicandoEstrategiaCorretaSemPersistir() throws Exception {
+        IMatriculaController controller = criarController(RELOGIO_NOVEMBRO);
+
+        assertEquals(99.90, controller.simularMensalidade("529.982.247-25", TipoPlano.TRIMESTRAL, false), 0.001);
+        assertEquals(79.92, controller.simularMensalidade(pedro59Anos.getCpf(), TipoPlano.TRIMESTRAL, true), 0.001);
+        assertEquals(69.93, controller.simularMensalidade(joaoIdoso.getCpf(), TipoPlano.TRIMESTRAL, false), 0.001);
+        assertEquals(69.93, controller.simularMensalidade(joaoIdoso.getCpf(), TipoPlano.TRIMESTRAL, true), 0.001);
+        assertTrue(matriculaDAO.listarTodos().isEmpty());
+    }
+
+    @Test
     void deveRejeitarParametrosInvalidosEConstrutoresNulos() {
         IMatriculaController controller = criarController(RELOGIO_NOVEMBRO);
 
@@ -360,6 +381,12 @@ class MatriculaControllerTest {
         assertThrows(DadosInvalidosException.class, () -> controller.matricular(maria.getCpf(), null, false));
         assertThrows(DadosInvalidosException.class, () -> controller.matricular("98765432100", TipoPlano.MENSAL, false));
         assertThrows(DadosInvalidosException.class, () -> controller.matricular(maria.getCpf(), TipoPlano.ANUAL, false));
+
+        assertThrows(DadosInvalidosException.class, () -> controller.simularMensalidade(null, TipoPlano.MENSAL, false));
+        assertThrows(DadosInvalidosException.class, () -> controller.simularMensalidade("   ", TipoPlano.MENSAL, false));
+        assertThrows(DadosInvalidosException.class, () -> controller.simularMensalidade(maria.getCpf(), null, false));
+        assertThrows(DadosInvalidosException.class, () -> controller.simularMensalidade("98765432100", TipoPlano.MENSAL, false));
+        assertThrows(DadosInvalidosException.class, () -> controller.simularMensalidade(maria.getCpf(), TipoPlano.ANUAL, false));
 
         assertThrows(DadosInvalidosException.class, () -> controller.cancelar(0));
         assertThrows(DadosInvalidosException.class, () -> controller.cancelar(-5));
