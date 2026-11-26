@@ -85,7 +85,7 @@ public class AlunoView extends JPanel {
         txtCpf.setToolTipText("Informe 11 dígitos ou no formato 000.000.000-00");
         txtTelefone.setToolTipText("DDD + número (10 ou 11 dígitos)");
         txtDataNascimento.setToolTipText("Formato dd/MM/aaaa (ex.: 15/08/2000)");
-        cmbObjetivo.setSelectedIndex(0);
+        cmbObjetivo.setSelectedIndex(-1);
 
         GridBagConstraints gbc = new GridBagConstraints();
         gbc.insets = new Insets(4, 6, 4, 6);
@@ -439,7 +439,7 @@ public class AlunoView extends JPanel {
         txtCpf.setText("");
         txtTelefone.setText("");
         txtDataNascimento.setText("");
-        cmbObjetivo.setSelectedIndex(0);
+        cmbObjetivo.setSelectedIndex(-1);
     }
 
     private Aluno alunoSelecionado() {

@@ -146,6 +146,7 @@ public class MatriculaView extends JPanel implements MatriculaObserver {
             }
         });
 
+        cmbTipoPlano.setSelectedIndex(-1);
         cmbAluno.addActionListener(e -> atualizarPreview());
         cmbTipoPlano.addActionListener(e -> atualizarPreview());
         chkEstudante.addActionListener(e -> atualizarPreview());
