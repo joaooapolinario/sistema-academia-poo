@@ -85,6 +85,10 @@ public class Main {
         IFrequenciaController frequenciaController = new FrequenciaController(
                 frequenciaDAO, alunoDAO, matriculaDAO, observers);
 
+        DadosDemonstracao dadosDemonstracao = new DadosDemonstracao(alunoController, instrutorController,
+                matriculaController, treinoController, frequenciaController);
+        dadosDemonstracao.carregarSeBancoVazio();
+
         SwingUtilities.invokeLater(() -> {
             AlunoView alunoView = new AlunoView(alunoController);
             InstrutorView instrutorView = new InstrutorView(instrutorController);
